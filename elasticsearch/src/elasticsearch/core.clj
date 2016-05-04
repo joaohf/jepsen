@@ -407,8 +407,7 @@
                    :checker (checker/compose
                               {:html    timeline/html
                                :set     checker/set
-                               :latency (checker/latency-graph
-                                          "report")})}
+                               :latency (checker/latency-graph)})
                   opts)))
 
 (defn create-isolate-primaries-test
