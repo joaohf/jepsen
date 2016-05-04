@@ -408,6 +408,8 @@
                               {:html    timeline/html
                                :set     checker/set
                                :latency (checker/latency-graph)})
+                   :ssh {:username "admin"
+                         :private-key-path "~/.ssh/id_rsa"}}
                   opts)))
 
 (defn create-isolate-primaries-test
