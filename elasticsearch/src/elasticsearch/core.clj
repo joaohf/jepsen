@@ -109,7 +109,7 @@
                   (recur)))
 
               (info node "installing elasticsearch")
-              (debian/install ["openjdk-7-jre-headless"])
+              (debian/install ["openjdk-8-jre-headless"])
               (c/exec :dpkg :-i :--force-confnew debfile))))))
 
 (defn configure!
@@ -395,7 +395,7 @@
   (merge tests/noop-test
          {:name (str "elasticsearch " name)
           :os   debian/os
-          :db   (db "1.5.0")}
+          :db   (db "2.3.2")}
          opts))
 
 (defn create-test
