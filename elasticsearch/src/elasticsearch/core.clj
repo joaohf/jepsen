@@ -97,33 +97,61 @@
               (debian/uninstall! ["elasticsearch"])
 
               (loop []
-                (info node "downloading elasticsearch")
+                (info node (str "downloading elasticsearch: " uri))
                 (c/exec :wget :-c uri)
-                (c/exec :wget :-c (str uri ".sha1.txt"))
+                (c/exec :wget :-c (str uri ".sha1"))
                 (when (try
-                        (c/exec :sha1sum :-c (str debfile ".sha1.txt"))
+                        (c/exec :sha1sum :-c (str debfile ".sha1"))
                         false
                         (catch RuntimeException e
                           (info "SHA failed" (.getMessage e))
-                          true))
+                          false))
                   (recur)))
 
               (info node "installing elasticsearch")
               (debian/install ["openjdk-8-jre-headless"])
               (c/exec :dpkg :-i :--force-confnew debfile))))))
 
+(defn is-master-configure?
+  "Check if is master"
+  [node test]
+    (if (= node (jepsen/primary test))
+      "elasticsearch-master.yml"
+      "elasticsearch.yml"))
+
 (defn configure!
   "Configures elasticsearch."
   [node test]
   (c/su
     (info node "configuring elasticsearch")
+
     (c/exec :echo
             (-> "default"
                 io/resource
                 slurp)
             :> "/etc/default/elasticsearch")
     (c/exec :echo
-            (-> "elasticsearch.yml"
+            (-> (is-master-configure? node test)
+                io/resource
+                slurp
+                (str/replace "$NAME"  (name node))
+                (str/replace "$HOSTS" (json/generate-string
+                                        (vals (c/on-many (:nodes test)
+                                                         (net/local-ip))))))
+            :> "/etc/elasticsearch/elasticsearch.yml")))
+
+(defn configure-master!
+  "Configures elasticsearch master node."
+  [node test]
+  (c/su
+    (info node "configuring elasticsearch master node")
+    (c/exec :echo
+            (-> "default"
+                io/resource
+                slurp)
+            :> "/etc/default/elasticsearch")
+    (c/exec :echo
+            (-> "elasticsearch-master.yml"
                 io/resource
                 slurp
                 (str/replace "$NAME"  (name node))
@@ -136,7 +164,7 @@
   [node]
   "Starts elasticsearch."
   (info node "starting elasticsearch")
-  (c/su (c/exec :service :elasticsearch :restart))
+  (c/su (c/exec :systemctl :restart :elasticsearch))
 
   (wait 60 :green)
   (info node "elasticsearch ready"))
@@ -145,7 +173,7 @@
   "Shuts down elasticsearch."
   [node]
   (c/su
-    (meh (c/exec :service :elasticsearch :stop))
+    (meh (c/exec :systemctl :stop :elasticsearch))
     (meh (c/exec :killall :-9 :elasticsearch)))
   (info node "elasticsearch stopped"))
 
@@ -166,7 +194,7 @@
     (setup! [_ test node]
       (doto node
         (nuke!)
-        (install! version)
+        (install! version)      
         (configure! test)
         (start!)))
 
