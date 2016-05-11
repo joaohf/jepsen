@@ -184,7 +184,7 @@
   (c/su
     (c/exec :rm :-rf "/var/lib/elasticsearch/elasticsearch")
     (meh
-      (c/exec :truncate :--size 0 "/var/log/elasticsearch/elasticsearch.log")))
+      (c/exec :rm :-rf "/var/log/elasticsearch/elasticsearch.log")))
   (info node "elasticsearch nuked"))
 
 (defn db
